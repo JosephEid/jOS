@@ -20,6 +20,8 @@
 #include "driver/i2s.h"         // ESP I²S bus
 #include "SD.h"                 // the SD card
 #include "Adafruit_VS1053.h"    // the audio chip
+#include <iostream>
+#include <string>
 
 // macros for debug calls to Serial.printf, with (D) and without (DD)
 // new line, and to Serial.println (DDD)
@@ -53,26 +55,19 @@ class Menu: public Chunk {
 public:
   void init() {
     tft.setTextSize(3);
-    tft.setCursor(65, 110);
-    tft.setTextColor(HX8357_BLACK);
-    tft.print("Screen Test");
-    tft.setCursor(120, 170);
-    tft.setTextColor(HX8357_RED);
-    tft.print("Red");  
-    tft.setCursor(120, 200);
-    tft.setTextColor(HX8357_GREEN);
-    tft.print("Green");
-    tft.setCursor(120, 230);
-    tft.setTextColor(HX8357_BLUE);
-    tft.print("Blue");
-    tft.fillRect(110, 320, 100, 40 , HX8357_BLACK);
-    tft.setCursor(120, 330);
+    tft.setCursor(30, 30);
     tft.setTextColor(HX8357_WHITE);
-    tft.print("NEXT!");
-    tft.fillRect(30, 30, 70, 70 , HX8357_GREEN);
-    tft.fillRect(220, 30, 70, 70 , HX8357_RED);
-    tft.fillRect(30, 380, 70, 70 , HX8357_BLUE);
-    tft.fillRect(220, 380, 70, 70 , HX8357_CYAN);
+    tft.print("jOS");
+
+    //Etch-A-Sketch app Icon:
+ 
+    tft.fillRect(30, 120, 70, 70 , HX8357_BLACK);
+    tft.setCursor(40, 120);
+    tft.print("E");
+    tft.fillRect(120, 120, 70, 70 , HX8357_RED);
+    tft.setCursor(130, 120);
+    tft.print("N");
+    
   }
   
   void fail() {
@@ -261,7 +256,11 @@ void do_send(osjob_t* j) {
 }
 
 int stage=1;
-
+// x and y coords of the etching pen
+int penx = 160; // put the pen in the ...
+int peny = 240; // ... middle of the screen
+char keyboard [26] = {'q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m'};
+String note = "";
 void setup() {
   Wire.setClock(100000); // TODO higher rates trigger an IOExpander bug
   Wire.begin();
@@ -288,7 +287,7 @@ void setup() {
   
   IOExpander::digitalWrite(IOExpander::BACKLIGHT, LOW);
   tft.begin(HX8357D);
-  tft.fillScreen(HX8357_WHITE);
+  tft.fillScreen(HX8357_BLUE);
   m.init();
   IOExpander::digitalWrite(IOExpander::BACKLIGHT, HIGH);
 
@@ -333,13 +332,9 @@ void setup() {
    
   // LMIC init
   Serial.println("doing os_init()...");
-  tft.println("LoRa Sending");
   os_init(); // if lora fails then will stop, allowing panic mess to be seen
-  tft.fillScreen(HX8357_WHITE);
+  
   m.init();
-  tft.setCursor(65, 270);
-  tft.setTextColor(HX8357_MAGENTA);
-  tft.println("LoRa Sent");
 
   // reset the MAC state; session and pending data transfers will be discarded
   Serial.println("doing LMIC_reset()...");
@@ -394,6 +389,7 @@ void setup() {
   do_send(&sendjob);
 }
 
+int oldY = 0;
 
 void loop(void) {
   uint8_t inputPwrSw = IOExpander::digitalRead(IOExpander::POWER_SWITCH);
@@ -412,198 +408,126 @@ void loop(void) {
   
   // retrieve a point  
   TS_Point p = ts.getPoint();
+  while (ts.touched()) {
+    p = ts.getPoint();
+  }
   // scale from ~0->4000 to tft.width using the calibration #'s
   p.x = map(p.x, TS_MAXX, TS_MINX, tft.width(), 0);
   p.y = map(p.y, TS_MAXY, TS_MINY, 0, tft.height());
     
   if(stage==1) {
     // respond to the touch
-    if( // we're in the boxes
-      (p.x >30 & p.x<100 & p.y >30 & p.y<100) |
-      (p.x>220 & p.x<290 & p.y >30 & p.y<100) |
-      (p.x >30 & p.x<100 & p.y >380 & p.y<450)|
-      (p.x>220 & p.x<290 & p.y >380 & p.y<450)
-    )
-      tft.fillCircle(p.x, p.y, 20, HX8357_BLACK);
       
-    if(p.x >105 & p.x<215 & p.y >315 & p.y<365) {
+    if(p.x >30 & p.x<100 & p.y >120 & p.y<190) {
       stage=2;
       tft.fillScreen(HX8357_BLACK);
       tft.setCursor(60, 20);
       tft.setTextColor(HX8357_WHITE);
-      tft.print("Accel Test");
-      tft.fillRect(110, 120, 100, 40 , HX8357_WHITE);
-      tft.setCursor(120, 130);
+      tft.print("ETCH-A-SKETCH");
+      tft.fillRect(10, 20, 30, 40 , HX8357_WHITE);
+      tft.setCursor(12, 22);
       tft.setTextColor(HX8357_BLACK);
-      tft.print("NEXT!");
+      tft.print("<");
+    }
+
+    else if(p.x >120 & p.x<190 & p.y >120 & p.y<190) {
+      stage=3;
+      tft.fillScreen(HX8357_BLACK);
+      tft.setCursor(60, 20);
+      tft.setTextColor(HX8357_WHITE);
+      tft.print("NOTE TAKER");
+      tft.fillRect(10, 20, 30, 40 , HX8357_WHITE);
+      tft.setCursor(12, 22);
+      tft.setTextColor(HX8357_BLACK);
+      tft.print("<");
+      tft.setTextColor(HX8357_WHITE);
+      
+      //Print row one
+      tft.setTextSize(5);
+      for(int i = 0; i < 26; i = i+1) {
+        if(i>=0 && i<10) {
+          tft.setCursor(10+i*31, 300);
+          tft.print(keyboard[i]); 
+        }
+        else if(i>=10 && i<19) {
+          tft.setCursor(15+(i-10)*33, 350);
+          tft.print(keyboard[i]); 
+        }
+        else {
+          tft.setCursor(25+(i-19)*35, 400);
+          tft.print(keyboard[i]);
+        }
+      }
+
+      tft.setTextSize(3);
+      tft.setCursor(100, 450);
+      tft.print("space");
+      
     }
   }
 
   if(stage==2) {
+    
     sensors_event_t event;
     accel.getEvent(&event);
-    tft.fillRect(0, 170, 319, 280 , HX8357_BLACK);
-    tft.setCursor(0, 270);
-    tft.setTextColor(HX8357_WHITE);
-    tft.print("     X: "); tft.println(event.acceleration.x);
-    tft.print("     Y: "); tft.println(event.acceleration.y);
-    tft.print("     Z: "); tft.println(event.acceleration.z);
-    delay(5);
-    
-    if(p.x >105 & p.x<215 & p.y >115 & p.y<165) {
-      stage=3;
-      tft.fillScreen(HX8357_WHITE);
-      tft.setCursor(60, 20);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("Bat Man Test");
-      tft.fillRect(110, 220, 100, 40 , HX8357_BLACK);
-      tft.setCursor(120, 230);
-      tft.setTextColor(HX8357_WHITE);
-      tft.print("NEXT!");
+  
+    if(event.acceleration.y > 2 & penx < 318) {
+      penx = penx +1;
+    }
+    if(event.acceleration.y < -2 & penx > 1) {
+      penx = penx -1;
+    }
+    if(event.acceleration.x > 2 & peny < 478) {
+      peny = peny +1;
+    }
+    if(event.acceleration.x < -2 & peny > 70) {
+      peny = peny -1;
+    }
+    tft.drawPixel(penx, peny, HX8357_WHITE);
+    if(p.x >5 & p.x<45 & p.y >15 & p.y<55) {
+      tft.fillScreen(HX8357_BLUE);
+      m.init();
+      stage = 1;
     }
   }
   if(stage==3) {
-    tft.setTextColor(HX8357_BLACK);
-    tft.setCursor(0, 70);
-    tft.print("  Version ");
-    tft.println(getRegister(BM_I2Cadd, BM_Version));
-    tft.println(" Expected 192");
-    tft.print(" USB ");
-    if(!powerGood)
-      tft.print("un");
-    tft.println("plugged");
-    if(getRegister(BM_I2Cadd, BM_Version)!=192) {
-      m.fail();
-      tft.print("BATT MAN");
-      delay(3000);
-    }
     
-    if(p.x >105 & p.x<215 & p.y >215 & p.y<265) {
-      stage=4;
-      tft.fillScreen(HX8357_BLACK);
-      tft.fillRect(110, 320, 100, 40 , HX8357_WHITE);
-      tft.setCursor(120, 330);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("NEXT!");
-      tft.setCursor(80, 20);
-      tft.setTextColor(HX8357_WHITE);
-      tft.println("Mic Test");
-    }
-  }
-  
-  if(stage==4) {
-    tft.fillRect(0, 160, 319, 90 , HX8357_BLACK);
-    delay(5);
-    uint32_t first = read_i2s(), second = read_i2s(), third = read_i2s();
-    if(first != 32) Serial.println(first);
-    if(second != 32) Serial.println(second);
-    if(third != 32) Serial.println(third);
-    tft.setCursor(70, 160);
-    tft.println(first);
-    tft.setCursor(70, 190);
-    tft.println(second);
-    tft.setCursor(70, 220);
-    tft.println(third);
-    if(first==0 & second == 0 & third ==0) {
-      m.fail();
-      tft.print("MICROPHONE");
-      delay(3000);
-    }
-    if(p.x >105 & p.x<215 & p.y >315 & p.y<365) {
-      stage=5;
-      tft.fillScreen(HX8357_BLACK);
-      tft.fillRect(110, 120, 100, 40 , HX8357_WHITE);
-      tft.setCursor(120, 130);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("NEXT!");
-      tft.setCursor(60, 20);
-      tft.setTextColor(HX8357_WHITE);
-      tft.println("IR LED Test");
-    }
-  }
-  
-  if(stage==5) {
-    digitalWrite(12, HIGH);
-    delay(100);
-    digitalWrite(12, LOW);
-    delay(100);
-    if(p.x >105 & p.x<215 & p.y >115 & p.y<165) {
-      stage=6;
-      tft.fillScreen(HX8357_BLACK);
-      tft.fillRect(110, 320, 100, 40 , HX8357_WHITE);
-      tft.setCursor(120, 330);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("NEXT!");
-      tft.setCursor(30, 20);
-      tft.setTextColor(HX8357_WHITE);
-      tft.println("SD Card Test");
-      tft.setCursor(20, 120);
-    }
-  }
-
-  if(stage==6) {
-    IOExpander::digitalWrite(IOExpander::SD_CS, LOW);
-    uint8_t cardType = SD.cardType();
-    IOExpander::digitalWrite(IOExpander::SD_CS, HIGH);
-
-    if(cardType == CARD_NONE) {
-        D("No SD card attached");
-        m.fail();
-        tft.print("SD CARD");
-        delay(3000);
-    }
-    tft.setCursor(50, 120);
-    tft.println("SD Card Type: ");
-    tft.setCursor(120, 190);
-    if(cardType == CARD_MMC) {
-        tft.println("MMC");
-    } else if(cardType == CARD_SD) {
-        tft.println("SDSC");
-    } else if(cardType == CARD_SDHC) {
-        tft.println("SDHC");
-    } else {
-        tft.println("UNKNOWN");
-    }
     
-    if(p.x >105 & p.x<215 & p.y >315 & p.y<365) {
-      stage=7;
-      tft.fillScreen(HX8357_BLACK);
-      tft.fillRect(70, 120, 160, 40 , HX8357_WHITE);
-      tft.setCursor(80, 130);
-      tft.setTextColor(HX8357_BLUE);
-      tft.print("STOP IT!");
-      tft.setCursor(70, 20);
-      tft.setTextColor(HX8357_WHITE);
-      tft.println("Vibe Test");
+    if(p.y>270 & p.y < 340 & oldY!=p.y) {
+      
+      int i = round((p.x)/31);
+      Serial.print(keyboard[i]);
+      note += (keyboard[i]);
+      Serial.print(note);
+      oldY = p.y;
     }
-  }
-
-  if(stage==7) {
-    IOExpander::digitalWrite(IOExpander::VIBRATION, HIGH);
-    delay(200);
-    IOExpander::digitalWrite(IOExpander::VIBRATION, LOW);
-    delay(200);
-    if(p.x >105 & p.x<215 & p.y >115 & p.y<165) {
-      stage=8;
-      tft.fillScreen(HX8357_BLACK);
-      tft.setCursor(60, 20);
-      tft.setTextColor(HX8357_WHITE);
-      tft.println("Audio Test");
+    else if(p.y>=350 & p.y < 390 & oldY!=p.y) {
+      
+      int i = round((p.x)/33);
+      Serial.print(keyboard[i+10]);
+      note += (keyboard[i+10]);
+      Serial.print(note);
+      oldY = p.y;
     }
-  }
-
-  if(stage==8) {
-    musicPlayer.sineTest(0x44, 2000); // make a tone to show VS1053 working
-    if(p.x >105 & p.x<215 & p.y >115 & p.y<165) {
-      stage=0;
-      tft.fillRect(70, 220, 160, 40 , HX8357_GREEN);
-      tft.setCursor(80, 230);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("ALL DONE!");
-      tft.fillRect(40, 440, 140, 40 , HX8357_GREEN);
-      tft.setCursor(50, 450);
-      tft.setTextColor(HX8357_BLACK);
-      tft.print("SWITCH!");
+    else if(p.y>=400 & p.y < 440 & oldY!=p.y) {
+      
+      int i = round((p.x)/35);
+      Serial.print(keyboard[i+19]);
+      note += (keyboard[i+19]);
+      Serial.print(note);
+      oldY = p.y;
+    }
+    else if(p.y>=450 & p.x>100 & p.x<160 & oldY!=p.y) {
+      note += (" ");
+      Serial.print(note);
+      oldY = p.y;
+    }
+    tft.setCursor(10, 80);
+    tft.print(note);
+    if(p.x >5 & p.x<45 & p.y >15 & p.y<55) {
+      tft.fillScreen(HX8357_BLUE);
+      stage=1;
+      m.init();
     }
   }
 }
