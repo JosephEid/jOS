@@ -63,11 +63,14 @@ public:
     //Etch-A-Sketch app Icon:
  
     tft.fillRect(30, 120, 70, 70 , HX8357_BLACK);
-    tft.setCursor(40, 120);
+    tft.setCursor(50, 130);
     tft.print("E");
     tft.fillRect(120, 120, 70, 70 , HX8357_RED);
-    tft.setCursor(130, 120);
+    tft.setCursor(140, 130);
     tft.print("N");
+    tft.fillRect(210, 120, 70, 70 , HX8357_GREEN);
+    tft.setCursor(230, 130);
+    tft.print("M");
     
   }
   
@@ -437,10 +440,11 @@ void loop(void) {
       tft.setCursor(60, 20);
       tft.setTextColor(HX8357_WHITE);
       tft.print("NOTE TAKER");
-      tft.fillRect(10, 20, 30, 40 , HX8357_WHITE);
+      tft.fillRect(10, 20, 30, 30 , HX8357_WHITE);
       tft.setCursor(12, 22);
       tft.setTextColor(HX8357_BLACK);
       tft.print("<");
+      tft.fillRect(0, 80, tft.width(), 200 , HX8357_WHITE);
       tft.setTextColor(HX8357_WHITE);
       
       //Print row one
@@ -465,6 +469,21 @@ void loop(void) {
       tft.setTextSize(3);
       tft.setCursor(100, 450);
       tft.print("space");
+      
+      
+    }
+    
+    else if(p.x >210 & p.x<280 & p.y >120 & p.y<190) {
+      stage=4;
+      tft.fillScreen(HX8357_BLACK);
+      tft.setCursor(60, 20);
+      tft.setTextColor(HX8357_WHITE);
+      tft.print("Music Player");
+      tft.fillRect(10, 20, 30, 30 , HX8357_WHITE);
+      tft.setCursor(12, 22);
+      tft.setTextColor(HX8357_BLACK);
+      tft.print("<");
+      tft.setTextColor(HX8357_WHITE);
       
       
     }
@@ -494,6 +513,7 @@ void loop(void) {
       stage = 1;
     }
   }
+  
   if(stage==3) {
     
     
@@ -502,7 +522,7 @@ void loop(void) {
       int i = round((p.x)/31);
       Serial.print(keyboard[i]);
       note += (keyboard[i]);
-      Serial.print(note);
+      printNote(note);
       oldY = p.y;
     }
     else if(p.y>=350 & p.y < 390 & oldY!=p.y) {
@@ -510,37 +530,47 @@ void loop(void) {
       int i = round((p.x)/33);
       Serial.print(keyboard[i+10]);
       note += (keyboard[i+10]);
-      Serial.print(note);
+      printNote(note);
       oldY = p.y;
     }
     else if(p.y>=400 & p.y < 440 & oldY!=p.y) {
       if (p.x > 260 & note.length() > 0) {
-        note = note.substring(0, note.length()-1);
+        note.remove(note.length()-1);
+        printNote(note);
+        oldY = p.y;
       }
       else {
         int i = round((p.x)/35);
         Serial.print(keyboard[i+19]);
         note += (keyboard[i+19]);
-        Serial.print(note);
+        printNote(note);
         oldY = p.y;
       }
       
     }
     else if(p.y>=450 & p.x>100 & p.x<160 & oldY!=p.y) {
       note += (" ");
-      Serial.print(note);
+      printNote(note);
       oldY = p.y;
     }
-    tft.setCursor(10, 80);
-    tft.print(note);
+    
     if(p.x >5 & p.x<45 & p.y >15 & p.y<55) {
       tft.fillScreen(HX8357_BLUE);
       stage=1;
       m.init();
     }
   }
+  
+  if(stage==4) {
+  }
 }
 
+void printNote(String note) {
+  tft.fillRect(0, 80, tft.width(), 200 , HX8357_WHITE);
+  tft.setTextColor(HX8357_BLACK);
+  tft.setCursor(10, 80);
+  tft.print(note);
+}
 void setShipping(bool value) {
   byte result;
   if(value) {
