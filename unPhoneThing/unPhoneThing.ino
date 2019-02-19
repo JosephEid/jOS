@@ -22,6 +22,7 @@
 #include "Adafruit_VS1053.h"    // the audio chip
 #include <iostream>
 #include <string>
+#include <WString.h>
 
 // macros for debug calls to Serial.printf, with (D) and without (DD)
 // new line, and to Serial.println (DDD)
@@ -459,9 +460,12 @@ void loop(void) {
         }
       }
 
+      tft.setCursor(260, 400);
+      tft.print("<<");
       tft.setTextSize(3);
       tft.setCursor(100, 450);
       tft.print("space");
+      
       
     }
   }
@@ -510,12 +514,17 @@ void loop(void) {
       oldY = p.y;
     }
     else if(p.y>=400 & p.y < 440 & oldY!=p.y) {
+      if (p.x > 260 & note.length() > 0) {
+        note = note.substring(0, note.length()-1);
+      }
+      else {
+        int i = round((p.x)/35);
+        Serial.print(keyboard[i+19]);
+        note += (keyboard[i+19]);
+        Serial.print(note);
+        oldY = p.y;
+      }
       
-      int i = round((p.x)/35);
-      Serial.print(keyboard[i+19]);
-      note += (keyboard[i+19]);
-      Serial.print(note);
-      oldY = p.y;
     }
     else if(p.y>=450 & p.x>100 & p.x<160 & oldY!=p.y) {
       note += (" ");
